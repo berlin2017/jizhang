@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:jizhang_app/models/transaction.dart' as model;
-import 'package:jizhang_app/pages/add_transaction_page.dart';
+
 import 'package:jizhang_app/pages/charts_page.dart';
 import 'package:jizhang_app/pages/edit_transaction_page.dart';
 import 'package:jizhang_app/pages/home_page.dart';
@@ -89,10 +89,7 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  Future<void> _addTransaction(model.Transaction newTransaction) async {
-    await DatabaseHelper.instance.insertTransaction(newTransaction);
-    _refreshTransactions();
-  }
+  
 
   Future<void> _updateTransaction(model.Transaction updatedTransaction) async {
     await DatabaseHelper.instance.updateTransaction(updatedTransaction);
@@ -105,33 +102,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onItemTapped(int index) {
-    if (index == 2) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (_) {
-          return Padding(
-            padding: EdgeInsets.only(
-              top: 20,
-              left: 20,
-              right: 20,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-            ),
-            child: AddTransactionPage(onAddTransaction: (newTx) {
-              _addTransaction(newTx);
-              Navigator.of(context).pop();
-            }),
-          );
-        },
-      );
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   void _navigateToEditPage(model.Transaction transaction) {
@@ -147,32 +120,26 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    int pageIndex = _selectedIndex;
-    if (_selectedIndex > 1) {
-      pageIndex = _selectedIndex -1;
-    }
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(['主页', '账单', '记一笔', '图表'][_selectedIndex]),
+        title: Text(['主页', '账单', '图表'][_selectedIndex]),
         actions: [
-          if (_selectedIndex != 2) // Do not show on the placeholder page
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const SettingsPage()),
-                );
-              },
-            ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const SettingsPage()),
+              );
+            },
+          ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : IndexedStack(
-              index: pageIndex,
+              index: _selectedIndex,
               children: [
-                HomePage(transactions: _transactions),
+                const HomePage(),
                 TransactionsPage(
                   transactions: _transactions,
                   onDeleteTransaction: _deleteTransaction,
@@ -191,10 +158,6 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.list),
             label: '账单',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle, size: 40, color: Colors.indigo),
-            label: '',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.pie_chart),

@@ -1,13 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:jizhang_app/models/transaction.dart' as model;
+import 'package:jizhang_app/pages/add_transaction_page.dart'; // 导入添加交易页面
+import 'package:jizhang_app/services/database_helper.dart';
 
-class HomePage extends StatelessWidget {
-  final List<model.Transaction> transactions;
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
-  const HomePage({super.key, required this.transactions});
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
 
-  double get _totalIncome => transactions.where((tx) => !tx.isExpense).fold(0.0, (sum, item) => sum + item.amount);
-  double get _totalExpense => transactions.where((tx) => tx.isExpense).fold(0.0, (sum, item) => sum + item.amount);
+class _HomePageState extends State<HomePage> {
+  List<model.Transaction> _transactions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTransactions();
+  }
+
+  Future<void> _loadTransactions() async {
+    final transactions = await DatabaseHelper.instance.getTransactions();
+    setState(() {
+      _transactions = transactions;
+    });
+  }
+
+  double get _totalIncome => _transactions.where((tx) => !tx.isExpense).fold(0.0, (sum, item) => sum + item.amount);
+  double get _totalExpense => _transactions.where((tx) => tx.isExpense).fold(0.0, (sum, item) => sum + item.amount);
   double get _balance => _totalIncome - _totalExpense;
 
   @override
@@ -19,6 +39,16 @@ class HomePage extends StatelessWidget {
           const SizedBox(height: 20),
           _buildRecentTransactions(),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddTransactionPage()),
+          );
+          _loadTransactions(); // 从添加交易页面返回后刷新数据
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -70,7 +100,7 @@ class HomePage extends StatelessWidget {
   }
 
   Widget _buildRecentTransactions() {
-    final recentTransactions = transactions.length > 4 ? transactions.sublist(0, 4) : transactions;
+    final recentTransactions = _transactions.length > 4 ? _transactions.sublist(0, 4) : _transactions;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

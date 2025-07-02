@@ -5,9 +5,7 @@ import 'package:jizhang_app/models/transaction.dart' as model;
 import 'package:jizhang_app/services/database_helper.dart';
 
 class AddTransactionPage extends StatefulWidget {
-  final Function(model.Transaction) onAddTransaction;
-
-  const AddTransactionPage({super.key, required this.onAddTransaction});
+  const AddTransactionPage({super.key});
 
   @override
   _AddTransactionPageState createState() => _AddTransactionPageState();
@@ -34,7 +32,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     });
   }
 
-  void _submitData(List<Category> categories) {
+  void _submitData(List<Category> categories) async {
     if (!_formKey.currentState!.validate() || _selectedCategoryId == null) {
       return;
     }
@@ -55,7 +53,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       isExpense: _isExpense,
     );
 
-    widget.onAddTransaction(newTransaction);
+    await DatabaseHelper.instance.insertTransaction(newTransaction);
+    Navigator.pop(context); // 保存成功后返回上一页
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -74,52 +73,60 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Category>>(
-      future: _categoriesFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('请先添加分类'));
-        }
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('添加交易'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: FutureBuilder<List<Category>>(
+          future: _categoriesFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text('请先添加分类'));
+            }
 
-        final categories = snapshot.data!;
-        if (_selectedCategoryId == null || !categories.any((c) => c.id == _selectedCategoryId)) {
-          _selectedCategoryId = categories.isNotEmpty ? categories.first.id : null;
-        }
+            final categories = snapshot.data!;
+            if (_selectedCategoryId == null || !categories.any((c) => c.id == _selectedCategoryId)) {
+              _selectedCategoryId = categories.isNotEmpty ? categories.first.id : null;
+            }
 
-        return SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Center(child: _buildTypeSelector()),
-                const SizedBox(height: 20),
-                _buildAmountField(),
-                const SizedBox(height: 20),
-                _buildCategorySelector(categories),
-                const SizedBox(height: 20),
-                _buildDateField(),
-                const SizedBox(height: 40),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => _submitData(categories),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      textStyle: const TextStyle(fontSize: 18),
+            return SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Center(child: _buildTypeSelector()),
+                    const SizedBox(height: 20),
+                    _buildAmountField(),
+                    const SizedBox(height: 20),
+                    _buildCategorySelector(categories),
+                    const SizedBox(height: 20),
+                    _buildDateField(),
+                    const SizedBox(height: 40),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => _submitData(categories),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          textStyle: const TextStyle(fontSize: 18),
+                        ),
+                        child: const Text('保 存'),
+                      ),
                     ),
-                    child: const Text('保 存'),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        );
-      },
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
